@@ -9,7 +9,7 @@ const decodedKey: string = Buffer.from(
   "base64"
 ).toString("utf-8");
 
-export const firebaseCert: Credential = cert({
+const firebaseCert: Credential = cert({
   projectId: process.env.FIREBASE_PROJECT_ID!,
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
   privateKey: decodedKey,
@@ -21,3 +21,9 @@ initializeApp({
 });
 
 export const db: Database = getDatabase();
+
+export const FirebasePaths: {
+  CPFS: string;
+} = {
+  CPFS: "cpfs",
+};

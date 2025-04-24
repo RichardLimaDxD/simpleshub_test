@@ -274,31 +274,118 @@
   </div>
 </template>
 
-<script setup>
-import { useCpfExtractor } from "../composables/index";
+<script>
+import api from "@/services/api";
 
-const {
-  selectedFile,
-  isDragging,
-  fileError,
-  isLoading,
-  apiCalled,
-  apiError,
-  cpfList,
-  searchQuery,
-  currentPage,
-  filteredCpfList,
-  totalPages,
+export default {
+  name: "PdfCpfExtractor",
+  data() {
+    return {
+      selectedFile: null,
+      isDragging: false,
+      fileError: "",
+      isLoading: false,
+      apiCalled: false,
+      apiError: "",
+      cpfList: [],
+      searchQuery: "",
+      currentPage: 1,
+      itemsPerPage: 50,
+    };
+  },
+  computed: {
+    filteredCpfList() {
+      let filtered = this.cpfList;
 
-  handleDragOver,
-  handleDragLeave,
-  handleFileDrop,
-  handleFileSelect,
-  removeFile,
-  formatFileSize,
-  copyToClipboard,
-  submitFile,
-} = useCpfExtractor();
+      if (this.searchQuery.trim()) {
+        filtered = filtered.filter((cpf) =>
+          cpf.includes(this.searchQuery.trim())
+        );
+      }
+      const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+
+      const endIndex = startIndex + this.itemsPerPage;
+
+      return filtered.slice(startIndex, endIndex);
+    },
+    totalPages() {
+      let filtered = this.cpfList;
+
+      if (this.searchQuery.trim()) {
+        filtered = filtered.filter((cpf) =>
+          cpf.includes(this.searchQuery.trim())
+        );
+      }
+      return Math.ceil(filtered.length / this.itemsPerPage);
+    },
+  },
+  watch: {
+    searchQuery() {
+      this.currentPage = 1;
+    },
+  },
+  methods: {
+    handleDragOver() {
+      this.isDragging = true;
+    },
+    handleDragLeave() {
+      this.isDragging = false;
+    },
+    handleFileDrop(event) {
+      this.isDragging = false;
+      const file = event.dataTransfer.files[0];
+      this.validateAndSetFile(file);
+    },
+    handleFileSelect(event) {
+      const file = event.target.files[0];
+      this.validateAndSetFile(file);
+    },
+    validateAndSetFile(file) {
+      this.fileError = "";
+      if (!file) return;
+      if (file.type !== "application/pdf") {
+        this.fileError = "Only PDF files are allowed.";
+        return;
+      }
+      this.selectedFile = file;
+    },
+    removeFile() {
+      this.selectedFile = null;
+    },
+    formatFileSize(size) {
+      const kb = size / 1024;
+      if (kb < 1024) return `${kb.toFixed(1)} KB`;
+      return `${(kb / 1024).toFixed(1)} MB`;
+    },
+    copyToClipboard(cpf) {
+      navigator.clipboard.writeText(cpf);
+    },
+    async submitFile() {
+      if (!this.selectedFile) return;
+      this.isLoading = true;
+      this.apiCalled = true;
+      this.apiError = "";
+      this.cpfList = [];
+
+      const formData = new FormData();
+
+      formData.append("pdf", this.selectedFile);
+
+      try {
+        await api.post("/upload", formData);
+
+        const response = await api.get("/upload");
+
+        this.cpfList = response.data.cpfs;
+      } catch (error) {
+        this.apiError =
+          error.response?.data?.message || "Failed to extract CPFs.";
+      } finally {
+        this.isLoading = false;
+      }
+    },
+  },
+};
 </script>
 
-<style scoped src="@/scss/styles.scss" lang="scss"></style>
+<style scoped src="../scss/styles.scss" lang="scss"></style>

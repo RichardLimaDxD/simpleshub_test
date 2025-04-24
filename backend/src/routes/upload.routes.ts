@@ -1,16 +1,14 @@
 import { Router } from "express";
 import multer from "multer";
 import {
-  createUploadController,
   getUploadController,
+  uploadPdfController,
 } from "../controller/upload.controller";
 
-const uploadRouters: Router = Router();
+export const uploadRouters: Router = Router();
 
-const upload = multer();
+const upload: multer.Multer = multer();
 
-uploadRouters.post("", upload.single("pdf"), createUploadController);
+uploadRouters.post("", upload.single("pdf"), uploadPdfController);
 
 uploadRouters.get("", getUploadController);
-
-export { uploadRouters };

@@ -1,26 +1,35 @@
-import { db } from "../database/firebase";
-import { extractCpfsFromPdf } from "../utils/pdf-parser";
+import PdfParse from "pdf-parse";
+import { db, FirebasePaths } from "../database/firebase";
+import { DataSnapshot, Reference } from "firebase-admin/database";
 
-const createUploadService = async (file: any) => {
-  if (!file) {
-    file.status(400).json({ message: "Pdf não enviado" });
-    return;
+export const createUploadService = async (
+  file: Express.Multer.File
+): Promise<string[]> => {
+  const extractCpfs = async (buffer: Buffer): Promise<string[]> => {
+    const { text } = await PdfParse(buffer);
+
+    const cpfRegex: RegExp = /\d{3}\.\d{3}\.\d{3}-\d{2}/g;
+
+    const matches: RegExpMatchArray | [] = text.match(cpfRegex) || [];
+
+    return [...new Set(matches)];
+  };
+
+  const cpfs: string[] = await extractCpfs(file.buffer);
+
+  const cpfsRef: Reference = db.ref(FirebasePaths.CPFS);
+
+  for (const cpf of cpfs) {
+    await cpfsRef.push(cpf);
   }
 
-  const retrieveCpfs = await extractCpfsFromPdf(file.buffer);
-  const ref = db.ref("cpfs");
-
-  for (const cpfs of retrieveCpfs) {
-    await ref.push(cpfs);
-  }
-
-  return retrieveCpfs;
+  return cpfs;
 };
 
-const getUploadService = async () => {
-  const ref = db.ref("cpfs");
+export const getUploadService = async () => {
+  const ref: Reference = db.ref(FirebasePaths.CPFS);
 
-  const snapshot = await ref.once("value");
+  const snapshot: DataSnapshot = await ref.once("value");
 
   const data = snapshot.val();
 
@@ -28,5 +37,3 @@ const getUploadService = async () => {
 
   return listAll;
 };
-
-export { createUploadService, getUploadService };
