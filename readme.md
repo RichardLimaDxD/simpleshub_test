@@ -31,7 +31,7 @@
 6. Para rodar o front-end acesse outro terminal e abra a pasta frontend com o comando:
    `cd frontend`
 
-7. Rode o comendo:
+7. Rode o comando:
    `npm install`
 
 8. Rode o servidor com o comando:
